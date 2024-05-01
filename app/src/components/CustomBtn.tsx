@@ -6,11 +6,16 @@ import {moderateScale} from 'react-native-size-matters';
 interface CustomBtnProps {
   title: string;
   onPress: () => void;
+  disabled?: boolean;
 }
 
-const CustomBtn = ({title, onPress}: CustomBtnProps) => {
+const CustomBtn = ({title, disabled = false, onPress}: CustomBtnProps) => {
   return (
-    <TouchableOpacity activeOpacity={0.8} style={styles.btn} onPress={onPress}>
+    <TouchableOpacity
+      disabled={disabled}
+      activeOpacity={0.8}
+      style={styles.btn}
+      onPress={onPress}>
       <Text numberOfLines={1} style={styles.btnTxt}>
         {title}
       </Text>

@@ -7,61 +7,94 @@ import {
   FlatList,
   Image,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import styles from './styles';
 import appColors from '../../../utils/appColors';
-import InputBox from '../../../components/InputBox';
 import appIcons from '../../../utils/appIcons';
+import Http from '../../../apis/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getError} from '../../../utils/getErrMsg';
+import {ToastMessage} from '../../../utils/toast';
+import TodoInputBox from '../../../components/TodoInputBox';
 
-const Todos = () => {
-  const [todoList, setTodoList] = useState<any>([]);
-  const [todoTxt, setTodoTxt] = useState('');
-  const [updateTodo, setUpdateTodo] = useState(null);
+interface TodoListProps {
+  id: string;
+  todo: string;
+  isDone: string;
+  userId: string;
+}
 
-  const deleteTodo = (id: number) => {
-    const res = todoList.filter((item: any) => item.id !== id);
-    setTodoList(res);
-  };
+const Todos = ({navigation}: any) => {
+  const [todoList, setTodoList] = useState<TodoListProps[]>([]);
+  const [todoTxt, setTodoTxt] = useState<string>('');
+  const [updateTodo, setUpdateTodo] = useState<null | TodoListProps>(null);
 
-  const editTodoFunc = () => {
-    const res = todoList.map((item: any) => {
-      //@ts-ignore
-      if (item.id == updateTodo?.id) {
-        return {...item, todo: todoTxt};
-      } else {
-        return item;
-      }
-    });
-    setTodoList(res);
-    setTodoTxt('');
-    setUpdateTodo(null);
-  };
-
-  const addTodo = () => {
-    if (todoTxt !== '') {
-      if (updateTodo) {
-        editTodoFunc();
-      } else {
-        const newTodo = {
-          id: Math.random(),
-          isDone: false,
-          todo: todoTxt,
-        };
-        setTodoList((pre: any) => [...pre, newTodo]);
-        setTodoTxt('');
-      }
+  const getAllTodos = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      const {data} = await Http.get(`/api/todos/${userId}`);
+      setTodoList(data.data);
+    } catch (error: any) {
+      ToastMessage(getError(error));
     }
   };
 
-  const setDoneTodo = (id: number) => {
-    const res = todoList.map((item: any) => {
-      if (item.id == id) {
-        return {...item, isDone: !item.isDone};
-      } else {
-        return item;
-      }
-    });
-    setTodoList(res);
+  const addTodo = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      const {data} = await Http.post(`/api/todos`, {
+        todo: todoTxt,
+        userId,
+      });
+      setTodoList((pre: any) => [data.data, ...pre]);
+      setTodoTxt('');
+    } catch (error: any) {
+      ToastMessage(getError(error));
+    }
+  };
+
+  const deleteTodo = async (todoId: string) => {
+    try {
+      const {data} = await Http.delete(`/api/todos/${todoId}`);
+      const res = todoList.filter((item: any) => item.id !== data.data.id);
+      setTodoList(res);
+    } catch (error: any) {
+      ToastMessage(getError(error));
+    }
+  };
+
+  const editTodoFunc = async (todoId: string) => {
+    try {
+      const {data} = await Http.patch(`/api/todos/${todoId}`, {todo: todoTxt});
+      const res = todoList.map((item: any) => {
+        if (item.id === data.data.id) {
+          return data.data;
+        } else {
+          return item;
+        }
+      });
+      setTodoList(res);
+      setTodoTxt('');
+      setUpdateTodo(null);
+    } catch (error: any) {
+      ToastMessage(getError(error));
+    }
+  };
+
+  const setDoneTodo = async (todoId: string, isDone: boolean) => {
+    try {
+      const {data} = await Http.patch(`/api/todos/${todoId}`, {isDone});
+      const res = todoList.map((item: any) => {
+        if (item.id === data.data.id) {
+          return data.data;
+        } else {
+          return item;
+        }
+      });
+      setTodoList(res);
+    } catch (error: any) {
+      ToastMessage(getError(error));
+    }
   };
 
   const RenderTodos = ({item}: any) => {
@@ -70,7 +103,7 @@ const Todos = () => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
-            setDoneTodo(item.id);
+            setDoneTodo(item.id, !item.isDone);
           }}
           style={styles.radioBtn}>
           <Image
@@ -117,10 +150,14 @@ const Todos = () => {
   const renderEmptyCompo = () => {
     return (
       <View style={styles.emptyView}>
-        <Text style={styles.emptyTxt}>No Todos.</Text>
+        <Text style={styles.emptyTxt}>No todos please add...</Text>
       </View>
     );
   };
+
+  useEffect(() => {
+    getAllTodos();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -130,18 +167,36 @@ const Todos = () => {
       />
       <View style={styles.header}>
         <Text style={styles.headerTxt}>Your Todos</Text>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            AsyncStorage.removeItem('userId');
+            navigation.replace('Auth');
+          }}>
+          <Image source={appIcons.logout} style={styles.logoutIcon} />
+        </TouchableOpacity>
       </View>
       <View style={styles.mainView}>
         <View style={styles.rowView}>
           <View style={styles.textBox}>
-            <InputBox
+            <TodoInputBox
               onChangeText={(txt: string) => setTodoTxt(txt)}
               placeholder="Enter todo..."
               value={todoTxt}
             />
           </View>
           <TouchableOpacity
-            onPress={addTodo}
+            onPress={() => {
+              if (todoTxt == '') {
+                ToastMessage('Enter todo...');
+                return;
+              }
+              if (updateTodo) {
+                editTodoFunc(updateTodo?.id);
+                return;
+              }
+              addTodo();
+            }}
             activeOpacity={0.8}
             style={styles.addTodoBtn}>
             <Text style={styles.addTodoBtnTxt}>

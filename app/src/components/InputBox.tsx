@@ -11,46 +11,57 @@ import appColors from '../utils/appColors';
 import appIcons from '../utils/appIcons';
 import {moderateScale} from 'react-native-size-matters';
 import fontSize from '../utils/fontSizes';
+import {Controller} from 'react-hook-form';
 
 interface InputBoxProps {
+  name: string;
+  control: any;
   title?: string;
   placeholder: string;
-  value: string;
-  onChangeText: (txt: string) => void;
   isPassword?: boolean;
 }
 
 const InputBox = ({
+  name,
+  control,
   title,
   placeholder,
-  value,
   isPassword = false,
-  onChangeText,
 }: InputBoxProps) => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   return (
     <View style={styles.inputView}>
       {title ? <Text style={styles.title}>{title}</Text> : null}
-      <View style={styles.txtInputView}>
-        <TextInput
-          placeholder={placeholder}
-          placeholderTextColor={appColors.grey}
-          value={value}
-          onChangeText={onChangeText}
-          style={styles.textInput}
-          secureTextEntry={isPassword && !showPassword}
-        />
-        {isPassword ? (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setShowPassword(pre => !pre)}>
-            <Image
-              source={showPassword ? appIcons.eyeclose : appIcons.eye}
-              style={styles.icon}
-            />
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      <Controller
+        control={control}
+        name={name}
+        render={({field: {value, onChange, onBlur}, fieldState: {error}}) => (
+          <>
+            <View style={styles.txtInputView}>
+              <TextInput
+                placeholder={placeholder}
+                placeholderTextColor={appColors.grey}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                style={styles.textInput}
+                secureTextEntry={isPassword && !showPassword}
+              />
+              {isPassword ? (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setShowPassword(pre => !pre)}>
+                  <Image
+                    source={showPassword ? appIcons.eyeclose : appIcons.eye}
+                    style={styles.icon}
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {error && <Text style={styles.errorMsg}>*{error.message}</Text>}
+          </>
+        )}
+      />
     </View>
   );
 };
@@ -58,6 +69,10 @@ const InputBox = ({
 export default InputBox;
 
 const styles = StyleSheet.create({
+  errorMsg: {
+    color: appColors.red,
+    fontSize: fontSize.small,
+  },
   inputView: {},
   txtInputView: {
     flexDirection: 'row',

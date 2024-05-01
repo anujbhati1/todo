@@ -12,6 +12,9 @@ export default StyleSheet.create({
     backgroundColor: appColors.primary,
     paddingHorizontal: moderateScale(10),
     paddingVertical: moderateScale(10),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTxt: {
     color: appColors.white,
@@ -43,6 +46,13 @@ export default StyleSheet.create({
     textAlign: 'center',
     color: appColors.white,
     fontWeight: '600',
+  },
+  //Header
+  logoutIcon: {
+    height: moderateScale(20),
+    width: moderateScale(20),
+    tintColor: appColors.white,
+    resizeMode: 'contain',
   },
   //Render todo Style start
   flatView: {

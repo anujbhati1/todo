@@ -29,6 +29,9 @@ app.get('/api/todos/:userId', async (req: Request, res: Response) => {
       where: {
         userId,
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     res.status(200).json({ message: 'Success', data: allTodos });
   } catch (error: any) {

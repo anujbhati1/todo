@@ -1,20 +1,28 @@
-import {View, Text, SafeAreaView, Image, StatusBar} from 'react-native';
+import {View, SafeAreaView, Image, StatusBar} from 'react-native';
 import React, {useEffect} from 'react';
 import styles from './styles';
 import appImages from '../../../utils/appImages';
 import appColors from '../../../utils/appColors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Splash = ({navigation}: any) => {
-  useEffect(() => {
-    setTimeout(() => {
+  const getUserIdFromLocal = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    if (userId) {
+      navigation.replace('Home');
+    } else {
       navigation.replace('Login');
-    }, 2000);
+    }
+  };
+
+  useEffect(() => {
+    setTimeout(getUserIdFromLocal, 500);
   }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
-        backgroundColor={appColors.transparent}
-        translucent={true}
+        backgroundColor={appColors.primary}
         barStyle={'light-content'}
       />
       <View>

@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import React from 'react';
+import React, {useState} from 'react';
 import styles from './styles';
 import appColors from '../../../utils/appColors';
 import InputBox from '../../../components/InputBox';
@@ -13,8 +13,37 @@ import AuthHeader from '../../../components/AuthHeader';
 import CustomBtn from '../../../components/CustomBtn';
 import Spacer from '../../../utils/spacer';
 import RowTxtBtn from '../../../components/RowTxtBtn';
+import {useForm} from 'react-hook-form';
+import {LoginValidator, LoginValidatorType} from '../../../lib/loginValidators';
+import {zodResolver} from '@hookform/resolvers/zod';
+import Http from '../../../apis/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {ToastMessage} from '../../../utils/toast';
+import {getError} from '../../../utils/getErrMsg';
 
 const Login = ({navigation}: any) => {
+  const [loading, setLoading] = useState<boolean>(false);
+  const {handleSubmit, control} = useForm<LoginValidatorType>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    resolver: zodResolver(LoginValidator),
+  });
+
+  const handleLogin = async ({email, password}: LoginValidatorType) => {
+    try {
+      setLoading(true);
+      const {data} = await Http.post('/api/login', {email, password});
+      AsyncStorage.setItem('userId', data.data.id);
+      setLoading(false);
+      navigation.replace('Home');
+    } catch (error: any) {
+      setLoading(false);
+      ToastMessage(getError(error));
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor={appColors.white} barStyle={'dark-content'} />
@@ -29,17 +58,17 @@ const Login = ({navigation}: any) => {
         />
         <Spacer height={30} />
         <InputBox
-          onChangeText={() => {}}
           placeholder="Enter Email"
           title="Email Address"
-          value=""
+          control={control}
+          name="email"
         />
         <Spacer height={15} />
         <InputBox
-          onChangeText={() => {}}
+          control={control}
+          name="password"
           placeholder="Password"
           title="Password"
-          value=""
           isPassword
         />
         <TouchableOpacity activeOpacity={0.8} style={styles.forgotBtn}>
@@ -47,10 +76,9 @@ const Login = ({navigation}: any) => {
         </TouchableOpacity>
         <Spacer height={20} />
         <CustomBtn
-          onPress={() => {
-            navigation.replace('Home');
-          }}
-          title="Sign In"
+          disabled={loading}
+          onPress={handleSubmit(handleLogin)}
+          title={loading ? 'Signing In...' : 'Sign In'}
         />
         <Spacer height={20} />
         <RowTxtBtn
